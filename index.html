@@ -341,11 +341,23 @@ function msg(t){
 }
 
 let loginGranted = false;
+let appOpened = false;
 
-// हर बार पेज खुलने पर पुराने Firebase session को बंद करके Login दिखाएँ।
-auth.setPersistence(firebase.auth.Auth.Persistence.NONE)
-.then(()=>auth.signOut())
-.then(()=>showLogin())
+// Firebase session को browser में सुरक्षित रखें ताकि refresh पर login बना रहे।
+auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
+.then(()=>{
+ auth.onAuthStateChanged(user=>{
+  if(user && user.uid===ADMIN_UID){
+   loginGranted=true;
+   if(!appOpened) openApp();
+  }else{
+   loginGranted=false;
+   appOpened=false;
+   showLogin();
+   if(user && user.uid!==ADMIN_UID) auth.signOut();
+  }
+ });
+})
 .catch(error=>{
  showLogin();
  msg("Authentication error: "+error.message);
@@ -367,7 +379,6 @@ async function login(){
  msg("Logging in...");
 
  try{
-  await auth.setPersistence(firebase.auth.Auth.Persistence.NONE);
   const credential=await auth.signInWithEmailAndPassword(ADMIN_EMAIL,password);
 
   if(credential.user.uid!==ADMIN_UID){
@@ -396,6 +407,8 @@ function openApp(){
   showLogin();
   return;
  }
+ if(appOpened)return;
+ appOpened=true;
  document.getElementById("loginScreen").style.display="none";
  document.getElementById("app").style.display="block";
  document.getElementById("connectionStatus").textContent="FIREBASE CONNECTED";
@@ -405,9 +418,8 @@ function openApp(){
 
 function logout(){
  loginGranted=false;
- auth.signOut().then(()=>{
-  showLogin();
- });
+ appOpened=false;
+ auth.signOut().then(showLogin);
 }
 
 function initUI(){
