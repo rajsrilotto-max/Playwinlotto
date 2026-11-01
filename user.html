@@ -59,6 +59,48 @@ main{width:min(100%,760px);margin:auto;padding:22px 14px 36px}
 .history-titli{text-align:center;font-weight:800;padding:5px}
 footer{text-align:center;color:#9ba7c8;padding:28px 12px 18px;font-size:12px}
 @media(min-width:560px){main{padding-left:22px;padding-right:22px}.grid2d{gap:7px}.num{padding:12px 2px}}
+
+/* Result view: fit result grids to mobile width without horizontal overflow. */
+html, body { width:100%; max-width:100%; overflow-x:hidden; }
+main { width:100%; max-width:760px; padding:12px 10px 20px; }
+#resultPage { width:100%; min-width:0; }
+.page-title { font-size:18px; margin:0 0 10px; }
+.panel { width:100%; min-width:0; padding:10px; margin:8px 0; border-radius:12px; }
+.panel-title { font-size:14px; margin:1px 0 9px; }
+.date-panel { padding:9px 10px; }
+.date-panel label { font-size:10px; margin-bottom:5px; }
+.date-panel input { padding:8px 9px; font-size:14px; }
+.grid2d { width:100%; grid-template-columns:repeat(10,minmax(0,1fr)); gap:3px; }
+.num { min-width:0; padding:7px 0; font-size:clamp(10px,2.9vw,15px); line-height:1.15; letter-spacing:-.35px; border-radius:4px; }
+.three { width:100%; gap:6px; }
+.three-card { min-width:0; padding:13px 3px; border-radius:9px; }
+.three-card b { font-size:11px; margin-bottom:6px; }
+.three-card strong { font-size:clamp(23px,7vw,34px); line-height:1.1; }
+.titli-result { font-size:clamp(26px,7vw,36px); padding:12px 4px; line-height:1.2; }
+.meta { font-size:11px; margin-top:7px; }
+.empty { padding:15px 6px; font-size:13px; }
+.history-item { padding:9px 1px; }
+.history-name { font-size:12px; margin-bottom:5px; }
+.history-date { font-size:10px; margin-top:5px; }
+.history-2d { width:100%; grid-template-columns:repeat(10,minmax(0,1fr)); gap:2px; }
+.history-2d span { min-width:0; padding:5px 0; font-size:clamp(9px,2.5vw,13px); line-height:1.1; }
+.history-3d { gap:4px; }
+.history-3d span { min-width:0; padding:7px 2px; font-size:12px; }
+.history-titli { font-size:16px; }
+.back { padding:8px 12px; margin-bottom:9px; font-size:13px; }
+@media (max-width:380px) {
+ main { padding-left:7px; padding-right:7px; }
+ .panel { padding:8px; }
+ .grid2d, .history-2d { gap:2px; }
+ .num { font-size:clamp(9px,2.7vw,11px); padding:6px 0; }
+ .history-2d span { font-size:clamp(8px,2.3vw,10px); }
+ .three-card { padding:11px 2px; }
+}
+@media (min-width:560px) {
+ main { padding-left:18px; padding-right:18px; }
+ .num { font-size:15px; }
+}
+
 </style>
 </head>
 <body>
