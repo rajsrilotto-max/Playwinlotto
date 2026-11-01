@@ -445,6 +445,35 @@ function initUI(){
  tick();
 }
 
+let duplicateCleanupRunning=false;
+async function removeExistingScheduledDuplicates(data){
+ if(duplicateCleanupRunning || !data) return;
+ const groups={};
+ Object.entries(data).forEach(([key,item])=>{
+  if(!item || item.status!=="scheduled" || !item.type || !Number.isFinite(Number(item.drawAt)))return;
+  const groupKey=String(item.type)+"|"+Number(item.drawAt);
+  (groups[groupKey]||(groups[groupKey]=[])).push([key,item]);
+ });
+ const updates={};
+ Object.values(groups).forEach(group=>{
+  if(group.length<2)return;
+  group.sort((a,b)=>
+   Number((b[1].editedAt||b[1].createdAt||0))-Number((a[1].editedAt||a[1].createdAt||0))
+  );
+  group.slice(1).forEach(([key])=>updates[ROOT+"/futureDraws/"+key]=null);
+ });
+ if(!Object.keys(updates).length)return;
+ duplicateCleanupRunning=true;
+ try{
+  await db.ref().update(updates);
+  console.info("Removed duplicate scheduled draw slots:",Object.keys(updates).length);
+ }catch(error){
+  console.error("Could not remove duplicate scheduled draws:",error);
+ }finally{
+  duplicateCleanupRunning=false;
+ }
+}
+
 function startData(){
  if(historyListener)db.ref(ROOT+"/history").off("value",historyListener);
  if(settingsListener)db.ref(ROOT+"/settings").off("value",settingsListener);
@@ -484,6 +513,7 @@ function startData(){
  futureListener=snap=>{
   futureRecords=snap.val()||{};
   renderFutureResults();
+  removeExistingScheduledDuplicates(futureRecords);
   checkScheduledDraws();
  };
  db.ref(ROOT+"/futureDraws").on("value",futureListener,error=>{
@@ -701,36 +731,44 @@ function escapeHTML(value){
 }
 
 async function addRecord(type,result,ref,time){
-  // Admin Publish queues the draw; the open Admin Panel publishes it at drawAt + 1 second.
+  // One scheduled record per game and exact draw timestamp. Re-publishing the
+  // same slot edits the existing queue item instead of creating a duplicate.
   const drawAt = time ? new Date(time).getTime() : NaN;
-  if(!Number.isFinite(drawAt)){
-    throw new Error("Draw का सही समय चुनें।");
-  }
-  if(drawAt <= Date.now()){
-    throw new Error("यह draw time बीत चुका है। कृपया भविष्य का समय चुनें।");
-  }
+  if(!Number.isFinite(drawAt)) throw new Error("Draw का सही समय चुनें।");
+  if(drawAt <= Date.now()) throw new Error("यह draw time बीत चुका है। कृपया भविष्य का समय चुनें।");
 
-  const now = Date.now();
-  const futureRef = db.ref(ROOT+"/futureDraws").push();
-  const record = {
-    type: type,
-    result: result,
-    ref: ref || "",
-    drawAt: drawAt,
-    status: "scheduled",
-    createdAt: now,
-    createdBy: auth.currentUser ? auth.currentUser.uid : ADMIN_UID
-  };
+  const now=Date.now();
+  const matches=Object.entries(futureRecords||{}).filter(([,item])=>
+    item && item.type===type && Number(item.drawAt)===drawAt &&
+    (item.status==="scheduled" || item.status==="publishing")
+  );
+  const updates={};
+  let drawKey;
 
-  const updates = {};
-  updates[ROOT+"/futureDraws/"+futureRef.key] = record;
-  updates[ROOT+"/auditLog/"+db.ref(ROOT+"/auditLog").push().key] = {
-    action: "SCHEDULE_FUTURE_DRAW",
-    type: type,
-    drawKey: futureRef.key,
-    drawAt: drawAt,
-    timestamp: now,
-    adminUID: auth.currentUser ? auth.currentUser.uid : ADMIN_UID
+  if(matches.length){
+    // Prefer the most recently edited/created queue item as the canonical one.
+    matches.sort((a,b)=>
+      Number((b[1].editedAt||b[1].createdAt||0))-Number((a[1].editedAt||a[1].createdAt||0))
+    );
+    drawKey=matches[0][0];
+    updates[ROOT+"/futureDraws/"+drawKey+"/result"]=result;
+    updates[ROOT+"/futureDraws/"+drawKey+"/ref"]=ref||"";
+    updates[ROOT+"/futureDraws/"+drawKey+"/editedAt"]=now;
+    updates[ROOT+"/futureDraws/"+drawKey+"/status"]="scheduled";
+    // Remove older duplicate queue entries for this same game/time.
+    matches.slice(1).forEach(([key])=>updates[ROOT+"/futureDraws/"+key]=null);
+  }else{
+    const futureRef=db.ref(ROOT+"/futureDraws").push();
+    drawKey=futureRef.key;
+    updates[ROOT+"/futureDraws/"+drawKey]={
+      type,result,ref:ref||"",drawAt,status:"scheduled",
+      createdAt:now,createdBy:auth.currentUser?auth.currentUser.uid:ADMIN_UID
+    };
+  }
+  updates[ROOT+"/auditLog/"+db.ref(ROOT+"/auditLog").push().key]={
+    action:matches.length?"UPDATE_SCHEDULED_DRAW":"SCHEDULE_FUTURE_DRAW",
+    type,drawKey,drawAt,timestamp:now,
+    adminUID:auth.currentUser?auth.currentUser.uid:ADMIN_UID
   };
   await db.ref().update(updates);
 }
