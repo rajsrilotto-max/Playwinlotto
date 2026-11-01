@@ -47,6 +47,10 @@ label{display:block;color:var(--muted);font-size:12px;margin:10px 0 5px}
 .numcell.green{border-color:#20c997;color:#6ff0c4}
 .numcell.orange{border-color:#ff9f43;color:#ffc27f}
 .numcell.purple{border-color:#a78bfa;color:#cbb8ff}
+.numcell-wrap{min-width:0;display:flex;flex-direction:column;gap:5px;padding:5px;border:1px solid #ffffff24;border-radius:9px;background:#14223b}
+.numcell-prefix{font-size:13px;font-weight:900;text-align:center;color:#6ff0c4;padding:3px}
+.numcell-suffix{width:100%;min-width:0;text-align:center;font-weight:900;font-size:15px;padding:7px 2px;border-radius:7px;background:#091225;border:1px solid #344663;color:#fff}
+.multiplier-select{width:100%;padding:5px 2px;font-size:11px;text-align:center}
 .resultrow{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 .resultbox{background:#0a1428;border:1px solid var(--line);padding:14px;border-radius:12px;text-align:center}
 .resultbox b{display:block;font-size:12px;color:var(--muted);margin-bottom:8px}
@@ -178,7 +182,7 @@ footer{text-align:center;color:#70819f;font-size:11px;padding:22px}
 </div></div>
 <div><label>Draw reference / note</label><input id="twoDref" placeholder="Draw #001"></div>
 </div>
-<label>Result values — हर value 4 अंकों की हो</label>
+<label>2D Result — पहले 2 अंक (घर) Fixed हैं; पीछे के 2 अंक Edit करें। हर घर के लिए Multiplier वैकल्पिक है।</label>
 <div class="drawgrid" id="twoDgrid"></div>
 <div class="actions" style="margin-top:14px">
 <button type="button" class="secondary" onclick="generate2DValues()">Generate random numbers (30 values)</button>
@@ -228,6 +232,8 @@ footer{text-align:center;color:#70819f;font-size:11px;padding:22px}
 </div>
 <label>Draw reference / note</label><input id="titliref" placeholder="Draw #001">
 <div class="options" id="titliOptions"></div>
+<label for="titliMultiplier">Titli Goda Multiplier (Optional)</label>
+<select id="titliMultiplier"><option value="">No Multiplier</option><option>2X</option><option>3X</option><option>5X</option><option>10X</option><option>25X</option><option>50X</option></select>
 <div class="actions" style="margin-top:14px">
 <button type="button" class="secondary" onclick="generateTitliValue()">Generate random option</button>
         <button class="success" onclick="publishTitli()">Publish selected option</button>
@@ -239,7 +245,7 @@ footer{text-align:center;color:#70819f;font-size:11px;padding:22px}
 
 <section class="page" id="future">
  <div class="heading"><div><h1>Future Results</h1><div class="sub">आने वाले draw के परिणाम देखें; तय समय पर Admin Panel अपने-आप publish करेगा</div></div></div>
- <div class="card"><p class="sub">2D/3D हर 15 मिनट और Titli Goda हर 5 मिनट के draw पर चलता है (सुबह 9:00 से रात 10:00 बजे IST)। तीनों गेम का चुने हुए draw time के 5 सेकंड बाद Admin Panel अपने-आप publish करेगा। Publish होने से पहले Edit उपलब्ध है।</p><div id="futureCounts" class="grid" style="margin:12px 0"></div><div id="futureEmpty" class="empty">अभी Future Results नहीं बने हैं। Admin Panel में schedule किए गए results यहाँ दिखेंगे।</div></div>
+ <div class="card"><p class="sub">2D/3D हर 15 मिनट और Titli Goda हर 5 मिनट के draw पर चलता है (सुबह 9:00 से रात 10:00 बजे IST)। तीनों गेम का चुने हुए draw time के 5 सेकंड बाद Admin Panel अपने-आप publish करेगा। 2D के पहले 2 House digits Fixed हैं और पीछे के 2 Result digits Edit किए जा सकते हैं। 2D के हर घर और Titli Goda के लिए Multiplier वैकल्पिक है। Publish होने से पहले Edit उपलब्ध है।</p><div id="futureCounts" class="grid" style="margin:12px 0"></div><div id="futureEmpty" class="empty">अभी Future Results नहीं बने हैं। Admin Panel में schedule किए गए results यहाँ दिखेंगे।</div></div>
 <div class="card"><h3>2D Fourth – Future Draws</h3><div id="future2DList" class="future-list"></div></div>
 <div class="card"><h3>3D Result – Future Draws</h3><div id="future3DList" class="future-list"></div></div>
 <div class="card"><h3>Titli Goda – Future Draws</h3><div id="futureTitliList" class="future-list"></div></div>
@@ -425,16 +431,28 @@ function logout(){
 function initUI(){
  const g=document.getElementById("twoDgrid");
  if(!g.children.length){
-  for(let i=0;i<30;i++){
-   let inp=document.createElement("input");
-   inp.className="numcell "+(i<10?"green":i<20?"orange":"purple");
-   inp.maxLength=4;
+  const prefixes=get2DPrefixes();
+  prefixes.forEach(prefix=>{
+   const wrap=document.createElement("div");
+   wrap.className="numcell-wrap";
+   wrap.dataset.prefix=prefix;
+   const house=document.createElement("div");
+   house.className="numcell-prefix";
+   house.textContent=prefix;
+   const inp=document.createElement("input");
+   inp.className="numcell-suffix";
+   inp.maxLength=2;
    inp.inputMode="numeric";
-   inp.placeholder=String(i+1).padStart(2,"0");
-   inp.setAttribute("aria-label","Result "+(i+1));
-   inp.addEventListener("input",()=>inp.value=inp.value.replace(/\D/g,"").slice(0,4));
-   g.appendChild(inp);
-  }
+   inp.placeholder="00";
+   inp.setAttribute("aria-label","Editable result for house "+prefix);
+   inp.addEventListener("input",()=>inp.value=inp.value.replace(/\\D/g,"").slice(0,2));
+   const mult=document.createElement("select");
+   mult.className="multiplier-select";
+   mult.setAttribute("aria-label","Multiplier for house "+prefix);
+   mult.innerHTML='<option value="">No X</option><option>2X</option><option>3X</option><option>5X</option><option>10X</option><option>25X</option><option>50X</option>';
+   wrap.append(house,inp,mult);
+   g.appendChild(wrap);
+  });
  }
 
  const o=document.getElementById("titliOptions");
@@ -739,7 +757,7 @@ function escapeHTML(value){
  }[c]));
 }
 
-async function addRecord(type,result,ref,time){
+async function addRecord(type,result,ref,time,multipliers=[],multiplier=""){
   // One scheduled record per game and exact draw timestamp. Re-publishing the
   // same slot edits the existing queue item instead of creating a duplicate.
   const drawAt = time ? new Date(time).getTime() : NaN;
@@ -798,46 +816,34 @@ function generateTitliValue(){
  });
 }
 
+function get2DPrefixes(){
+ return [...Array.from({length:10},(_,i)=>String(10+i)),...Array.from({length:10},(_,i)=>String(30+i)),...Array.from({length:10},(_,i)=>String(50+i))];
+}
+function collect2DValues(){
+ return [...document.querySelectorAll("#twoDgrid .numcell-wrap")].map(w=>w.dataset.prefix+w.querySelector(".numcell-suffix").value.trim());
+}
+function collect2DMultipliers(){
+ return [...document.querySelectorAll("#twoDgrid .numcell-wrap")].map(w=>w.querySelector(".multiplier-select").value);
+}
 function generate2DValues(){
- const prefixes=[
-  ...Array.from({length:10},(_,i)=>10+i),
-  ...Array.from({length:10},(_,i)=>30+i),
-  ...Array.from({length:10},(_,i)=>50+i)
- ];
- const inputs=[...document.querySelectorAll("#twoDgrid input")];
- prefixes.forEach((prefix,i)=>{inputs[i].value=String(prefix)+randomTwoDigits();});
+ document.querySelectorAll("#twoDgrid .numcell-wrap").forEach(w=>{w.querySelector(".numcell-suffix").value=randomTwoDigits();});
 }
 function validate2DPrefixes(values){
- const expected=[
-  ...Array.from({length:10},(_,i)=>String(10+i)),
-  ...Array.from({length:10},(_,i)=>String(30+i)),
-  ...Array.from({length:10},(_,i)=>String(50+i))
- ];
- return values.length===30 && values.every(v=>/^[0-9]{4}$/.test(v)) &&
-  expected.every(prefix=>values.filter(v=>v.slice(0,2)===prefix).length===1);
+ const expected=get2DPrefixes();
+ return values.length===30 && values.every(v=>/^[0-9]{4}$/.test(v)) && expected.every((p,i)=>values[i].slice(0,2)===p);
 }
-
 async function publish2D(){
- const vals=[...document.querySelectorAll("#twoDgrid input")].map(x=>x.value.trim());
- if(vals.some(x=>!/^[0-9]{4}$/.test(x))){
-  alert("कृपया सभी 30 बॉक्स में 4 अंकों का नंबर भरें।");
-  return;
- }
- if(!validate2DPrefixes(vals)){
-  alert("2D Prefix नियम जरूरी है: 10–19, 30–39 और 50–59 का हर prefix ठीक एक बार होना चाहिए। आखिरी दो अंक आप बदल सकते हैं।");
-  return;
- }
- if(!confirm("क्या आप इन 30 values को publish करना चाहते हैं?"))return;
-
+ const vals=collect2DValues();
+ if(vals.some(x=>!/^[0-9]{4}$/.test(x))){alert("कृपया सभी 30 घरों के पीछे के 2 अंकों का Result भरें।");return;}
+ if(!validate2DPrefixes(vals)){alert("2D के Fixed घर बदले नहीं जा सकते।");return;}
+ const multipliers=collect2DMultipliers();
+ if(!confirm("क्या आप इन 30 2D results और चुने हुए Multipliers को schedule करना चाहते हैं?"))return;
  try{
-  await addRecord("2D Fourth",vals,
-   document.getElementById("twoDref").value,
-   document.getElementById("twoDtime").value);
-  alert("2D result Future Queue में schedule हो गया। तीनों गेम के चुने हुए draw time के 5 सेकंड बाद Admin Panel से customer को publish होगा।");
+  await addRecord("2D Fourth",vals,document.getElementById("twoDref").value,document.getElementById("twoDtime").value,multipliers);
+  alert("2D result Future Queue में schedule हो गया। चुने हुए Draw Time के 5 सेकंड बाद publish होगा।");
   reset2D();
  }catch(e){alert("Publish error: "+e.message);}
 }
-
 async function publish3D(){
  let vals=["valA","valB","valC"].map(id=>document.getElementById(id).value.trim());
  if(vals.some(x=>!/^[0-9]{3}$/.test(x))){
@@ -875,7 +881,8 @@ async function publishTitli(){
 }
 
 function reset2D(){
- document.querySelectorAll("#twoDgrid input").forEach(x=>x.value="");
+ document.querySelectorAll("#twoDgrid .numcell-suffix").forEach(x=>x.value="");
+ document.querySelectorAll("#twoDgrid .multiplier-select").forEach(x=>x.value="");
  document.getElementById("twoDref").value="";
 }
 function reset3D(){
@@ -883,6 +890,7 @@ function reset3D(){
 }
 function clearTitli(){
  selectedTitli=-1;
+ document.getElementById("titliMultiplier").value="";
  document.querySelectorAll(".option").forEach(x=>x.classList.remove("selected"));
 }
 
@@ -1083,10 +1091,13 @@ async function editFutureResult(key){
  const item=futureRecords[key]; if(!item||item.status!=="scheduled"||item.drawAt<=Date.now()){alert("यह draw edit नहीं किया जा सकता।");return;}
  let result;
  if(item.type==="2D Fourth"){
-  const text=prompt("30 चार-अंकों के नंबर comma से अलग करके लिखें। Prefix क्रम: 10–19, 30–39, 50–59 (हर prefix एक बार)।",(item.result||[]).join(","));
-  if(text===null)return; result=text.split(",").map(x=>x.trim());
-  const expected=[...Array.from({length:10},(_,i)=>String(10+i)),...Array.from({length:10},(_,i)=>String(30+i)),...Array.from({length:10},(_,i)=>String(50+i))];
-  if(result.length!==30||result.some(x=>!/^[0-9]{4}$/.test(x))||expected.some(p=>result.filter(x=>x.slice(0,2)===p).length!==1)){alert("गलत 2D डेटा। सभी 30 नंबर चार अंकों के हों और हर तय prefix ठीक एक बार हो।");return;}
+  const prefixes=get2DPrefixes();
+  const suffixes=(item.result||[]).map(v=>String(v).slice(2));
+  const text=prompt("केवल पीछे के 2 Result digits comma से लिखें। आगे के 2 House digits Fixed रहेंगे।",suffixes.join(","));
+  if(text===null)return;
+  const edited=text.split(",").map(x=>x.trim());
+  if(edited.length!==30||edited.some(x=>!/^[0-9]{2}$/.test(x))){alert("सभी 30 घरों के लिए केवल 2-2 अंकों के Result लिखें। House digits Fixed रहेंगे।");return;}
+  result=prefixes.map((prefix,i)=>prefix+edited[i]);
  }else if(item.type==="3D Result"){
   const text=prompt("A,B,C के 3-अंकों के नंबर comma से लिखें।",[item.result.A,item.result.B,item.result.C].join(","));
   if(text===null)return;const a=text.split(",").map(x=>x.trim());if(a.length!==3||a.some(x=>!/^[0-9]{3}$/.test(x))){alert("A, B और C के लिए तीन 3-अंकों के नंबर जरूरी हैं।");return;}result={A:a[0],B:a[1],C:a[2]};
