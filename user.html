@@ -310,13 +310,14 @@ function todayIST(){return istDateKey(new Date());}
 function cutoffDateKey(){const d=new Date(Date.now()-3*86400000);return istDateKey(d);}
 function latestOf(type){return records.filter(r=>r.type===type&&istDateKey(r.time||r.publishedAt)===selectedDate).sort((a,b)=>sortTime(b)-sortTime(a))[0]||null;}
 
-function render2D(result){
+function render2D(result,multipliers=[]){
  if(!Array.isArray(result)||result.length!==30){
   return '<div class="empty">2D result is not available in the expected 30-number format.</div>';
  }
  return '<div class="grid2d">'+result.map((n,i)=>{
   const color=i<10?"g":i<20?"o":"p";
-  return '<div class="num '+color+'">'+esc(n)+'</div>';
+  const mult=Array.isArray(multipliers)?multipliers[i]||"":"";
+  return '<div class="num '+color+'">'+esc(n)+(mult?'<small style="display:block;font-size:9px;color:#ffe0a8;margin-top:3px">'+esc(mult)+'</small>':'')+'</div>';
  }).join("")+'</div>';
 }
 function render3D(result){
@@ -325,32 +326,35 @@ function render3D(result){
   '<div class="three-card"><b>RESULT '+k+'</b><strong>'+esc(result[k]||"---")+'</strong></div>'
  ).join("")+'</div>';
 }
-function renderTitli(result){
+function renderTitli(result,multiplier=""){
  if(!result||typeof result!=="object")return '<div class="empty">Titli Goda result not available.</div>';
- return '<div class="titli-result">'+esc(result.emoji||"🦋")+' '+esc(result.name||"")+'</div>';
+ return '<div class="titli-result">'+esc(result.emoji||"🦋")+' '+esc(result.name||"")+(multiplier?'<div style="font-size:15px;color:#ffe0a8;margin-top:7px">'+esc(multiplier)+'</div>':'')+'</div>';
 }
-function resultMarkup(type,result){
- if(type==="2D Fourth")return render2D(result);
+function resultMarkup(type,result,record={}){
+ if(type==="2D Fourth")return render2D(result,record.multipliers||[]);
  if(type==="3D Result")return render3D(result);
- if(type==="Titli Goda")return renderTitli(result);
+ if(type==="Titli Goda")return renderTitli(result,record.multiplier||"");
  return '<div class="empty">Result unavailable.</div>';
 }
 function historyMarkup(r){
  let body="";
  if(r.type==="2D Fourth"){
   if(!Array.isArray(r.result)||r.result.length!==30)return "";
-  body='<div class="history-2d">'+r.result.map((n,i)=>'<span style="color:'+(i<10?'#63e8ba':i<20?'#ffc17a':'#d1baff')+'">'+esc(n)+'</span>').join("")+'</div>';
+  body='<div class="history-2d">'+r.result.map((n,i)=>{
+   const mult=Array.isArray(r.multipliers)?r.multipliers[i]||"":"";
+   return '<span style="color:'+(i<10?'#63e8ba':i<20?'#ffc17a':'#d1baff')+'">'+esc(n)+(mult?'<small style="display:block;font-size:8px;color:#ffe0a8">'+esc(mult)+'</small>':'')+'</span>';
+  }).join("")+'</div>';
  }else if(r.type==="3D Result"){
   body='<div class="history-3d">'+["A","B","C"].map(k=>'<span><b>'+k+'</b> '+esc(r.result?.[k]||"---")+'</span>').join("")+'</div>';
  }else if(r.type==="Titli Goda"){
-  body='<div class="history-titli">'+esc(r.result?.emoji||"🦋")+' '+esc(r.result?.name||"")+'</div>';
+  body='<div class="history-titli">'+esc(r.result?.emoji||"🦋")+' '+esc(r.result?.name||"")+(r.multiplier?'<div style="font-size:11px;color:#ffe0a8;margin-top:4px">'+esc(r.multiplier)+'</div>':'')+'</div>';
  }
  return '<div class="history-item"><div class="history-name">'+esc(r.type)+(r.demo?' <span style="color:#ffcf45;font-size:10px">• DEMO</span>':'')+'</div>'+body+'<div class="history-date">'+dateText(r.time??r.publishedAt)+'</div></div>';
 }
 function renderPage(){
  const current=latestOf(activeType);
  document.getElementById("pageTitle").textContent=activeType==="2D Fourth"?"2D FOURTH RESULT":activeType.toUpperCase()+" RESULT";
- document.getElementById("latestResult").innerHTML=current?((current.demo?'<div style="text-align:center;color:#ffcf45;font-size:11px;font-weight:900;margin-bottom:8px">DEMO HISTORY — NOT AN OFFICIAL RESULT</div>':'')+resultMarkup(activeType,current.result)):'<div class="empty">No published result yet.</div>';
+ document.getElementById("latestResult").innerHTML=current?((current.demo?'<div style="text-align:center;color:#ffcf45;font-size:11px;font-weight:900;margin-bottom:8px">DEMO HISTORY — NOT AN OFFICIAL RESULT</div>':'')+resultMarkup(activeType,current.result,current)):'<div class="empty">No published result yet.</div>';
  document.getElementById("latestDate").textContent=current?dateText(current.time??current.publishedAt):"";
  const dateInput=document.getElementById("historyDate");
  dateInput.max=todayIST(); dateInput.min=cutoffDateKey();
