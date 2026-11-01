@@ -239,7 +239,7 @@ footer{text-align:center;color:#70819f;font-size:11px;padding:22px}
 
 <section class="page" id="future">
  <div class="heading"><div><h1>Future Results</h1><div class="sub">आने वाले draw के परिणाम देखें; तय समय पर Admin Panel अपने-आप publish करेगा</div></div></div>
- <div class="card"><p class="sub">2D/3D हर 15 मिनट और Titli Goda हर 5 मिनट के draw पर चलता है (सुबह 9:00 से रात 10:00 बजे IST)। 2D/3D draw time के 15 मिनट 5 सेकंड बाद और Titli Goda draw time के 5 मिनट 5 सेकंड बाद Admin Panel अपने-आप publish करेगा। Publish होने से पहले Edit उपलब्ध है।</p><div id="futureCounts" class="grid" style="margin:12px 0"></div><div id="futureEmpty" class="empty">अभी Future Results नहीं बने हैं। Admin Panel में schedule किए गए results यहाँ दिखेंगे।</div></div>
+ <div class="card"><p class="sub">2D/3D हर 15 मिनट और Titli Goda हर 5 मिनट के draw पर चलता है (सुबह 9:00 से रात 10:00 बजे IST)। तीनों गेम का चुने हुए draw time के 5 सेकंड बाद Admin Panel अपने-आप publish करेगा। Publish होने से पहले Edit उपलब्ध है।</p><div id="futureCounts" class="grid" style="margin:12px 0"></div><div id="futureEmpty" class="empty">अभी Future Results नहीं बने हैं। Admin Panel में schedule किए गए results यहाँ दिखेंगे।</div></div>
 <div class="card"><h3>2D Fourth – Future Draws</h3><div id="future2DList" class="future-list"></div></div>
 <div class="card"><h3>3D Result – Future Draws</h3><div id="future3DList" class="future-list"></div></div>
 <div class="card"><h3>Titli Goda – Future Draws</h3><div id="futureTitliList" class="future-list"></div></div>
@@ -585,11 +585,8 @@ async function publishScheduledDraw(key){
 }
 
 function scheduledPublishDelay(item){
- const type=String(item && item.type || "").toLowerCase();
- // 2D और 3D: 15 मिनट + 5 सेकंड; Titli Goda: 5 मिनट + 5 सेकंड.
- if(type.includes("titli")) return (5*60*1000)+5000;
- if(type.includes("2d") || type.includes("3d")) return (15*60*1000)+5000;
- return 15*60*1000+5000;
+ // सभी गेम का रिजल्ट चुने हुए Draw Time के 5 सेकंड बाद publish होगा।
+ return 5000;
 }
 
 function checkScheduledDraws(){
@@ -836,7 +833,7 @@ async function publish2D(){
   await addRecord("2D Fourth",vals,
    document.getElementById("twoDref").value,
    document.getElementById("twoDtime").value);
-  alert("2D result Future Queue में schedule हो गया। 2D/3D के draw time के 15 मिनट 5 सेकंड बाद और Titli Goda के draw time के 5 मिनट 5 सेकंड बाद Admin Panel से customer को publish होगा।");
+  alert("2D result Future Queue में schedule हो गया। तीनों गेम के चुने हुए draw time के 5 सेकंड बाद Admin Panel से customer को publish होगा।");
   reset2D();
  }catch(e){alert("Publish error: "+e.message);}
 }
@@ -854,7 +851,7 @@ async function publish3D(){
    {A:vals[0],B:vals[1],C:vals[2]},
    document.getElementById("threeDref").value,
    document.getElementById("threeDtime").value);
-  alert("3D result Future Queue में schedule हो गया। 2D/3D के draw time के 15 मिनट 5 सेकंड बाद और Titli Goda के draw time के 5 मिनट 5 सेकंड बाद Admin Panel से customer को publish होगा।");
+  alert("3D result Future Queue में schedule हो गया। तीनों गेम के चुने हुए draw time के 5 सेकंड बाद Admin Panel से customer को publish होगा।");
   reset3D();
  }catch(e){alert("Publish error: "+e.message);}
 }
@@ -873,7 +870,7 @@ async function publishTitli(){
    document.getElementById("titlitime").value);
   selectedTitli=-1;
   document.querySelectorAll(".option").forEach(x=>x.classList.remove("selected"));
-  alert("Titli Goda Future Queue में schedule हो गया। 2D/3D के draw time के 15 मिनट 5 सेकंड बाद और Titli Goda के draw time के 5 मिनट 5 सेकंड बाद Admin Panel से customer को publish होगा।");
+  alert("Titli Goda Future Queue में schedule हो गया। तीनों गेम के चुने हुए draw time के 5 सेकंड बाद Admin Panel से customer को publish होगा।");
  }catch(e){alert("Publish error: "+e.message);}
 }
 
