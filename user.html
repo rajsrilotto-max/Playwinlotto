@@ -443,7 +443,7 @@ db.ref(ROOT+"/demoHistory").on("value",snapshot=>{
 #playwinWhatsAppButton{
  position:fixed;
  right:max(16px, env(safe-area-inset-right, 0px));
- bottom:calc(24px + env(safe-area-inset-bottom, 0px));
+ bottom:calc(24px + 1.5cm + env(safe-area-inset-bottom, 0px));
  z-index:99999;
  width:66px;
  height:66px;
@@ -459,7 +459,7 @@ db.ref(ROOT+"/demoHistory").on("value",snapshot=>{
 }
 #playwinWhatsAppButton svg{width:36px;height:36px;display:block;fill:currentColor}
 @media(max-width:380px){
- #playwinWhatsAppButton{width:60px;height:60px;right:12px;bottom:calc(20px + env(safe-area-inset-bottom, 0px))}
+ #playwinWhatsAppButton{width:60px;height:60px;right:12px;bottom:calc(20px + 1.5cm + env(safe-area-inset-bottom, 0px))}
  #playwinWhatsAppButton svg{width:32px;height:32px}
 }
 </style>
