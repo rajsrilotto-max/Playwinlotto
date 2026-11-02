@@ -906,15 +906,31 @@ function displayResult(r){
  return escapeHTML(r.result.emoji)+" "+escapeHTML(r.result.name);
 }
 
-function render(){
- document.getElementById("totalCount").textContent=records.length;
- document.getElementById("count2d").textContent=records.filter(r=>r.type==="2D Fourth").length;
- document.getElementById("count3d").textContent=records.filter(r=>r.type==="3D Result").length;
- document.getElementById("countTitli").textContent=records.filter(r=>r.type==="Titli Goda").length;
+function istDateKey(value=new Date()){
+ const date=value instanceof Date?value:new Date(Number(value)||value);
+ const parts=new Intl.DateTimeFormat("en-CA",{
+  timeZone:"Asia/Kolkata",year:"numeric",month:"2-digit",day:"2-digit"
+ }).formatToParts(date);
+ const p=Object.fromEntries(parts.map(x=>[x.type,x.value]));
+ return p.year+"-"+p.month+"-"+p.day;
+}
 
- let a=records.find(r=>r.type==="2D Fourth");
- let b=records.find(r=>r.type==="3D Result");
- let c=records.find(r=>r.type==="Titli Goda");
+let lastDashboardDate="";
+function render(){
+ // Dashboard केवल आज (IST) के draw-date वाले published results दिखाता है।
+ // पूरी records list सुरक्षित रहती है और Result History में सभी दिन दिखते हैं।
+ const today=istDateKey(new Date());
+ const todayRecords=records.filter(r=>istDateKey(r.time||r.drawAt||r.publishedAt)===today);
+
+ document.getElementById("totalCount").textContent=todayRecords.length;
+ document.getElementById("count2d").textContent=todayRecords.filter(r=>r.type==="2D Fourth").length;
+ document.getElementById("count3d").textContent=todayRecords.filter(r=>r.type==="3D Result").length;
+ document.getElementById("countTitli").textContent=todayRecords.filter(r=>r.type==="Titli Goda").length;
+
+ let a=todayRecords.find(r=>r.type==="2D Fourth");
+ let b=todayRecords.find(r=>r.type==="3D Result");
+ let c=todayRecords.find(r=>r.type==="Titli Goda");
+ lastDashboardDate=today;
 
  document.getElementById("latest2d").innerHTML=a?
   '<div class="drawgrid">'+displayResult(a)+'</div><p class="sub">'+fmt(a.time)+'</p>':
@@ -1010,9 +1026,14 @@ function renderUpcoming(){
 
 let lastUpcomingRefresh=0;
 function tick(){
- document.getElementById("clock").textContent=new Date().toLocaleTimeString("en-IN",{
+ const nowDate=new Date();
+ document.getElementById("clock").textContent=nowDate.toLocaleTimeString("en-IN",{
   timeZone:"Asia/Kolkata",hour12:true
  });
+ // IST में रात 12 बजे तारीख बदलते ही Dashboard refresh करें।
+ const today=istDateKey(nowDate);
+ if(lastDashboardDate && today!==lastDashboardDate)render();
+
  const now=Date.now();
  if(now-lastUpcomingRefresh>=60000){
   renderUpcoming();
